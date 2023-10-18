@@ -25,6 +25,7 @@ class PDFSpeedReaderApp:
         self.word_index = 0
         self.history = {}
         self.libratanian = Librarian()
+        self.books_history = BooksHistory()
 
         self.speed = 1100  # Default speed: Words per minute
         self.paused = False
@@ -86,9 +87,16 @@ class PDFSpeedReaderApp:
         self.pdf_path = filedialog.askopenfilename(filetypes=[("PDF Files", "*.pdf")])
         if self.pdf_path:
             self.pages = self.libratanian.get_book(self.pdf_path)
+        self.history.update(self.books_history.load())
+        self.current_page_index, self.word_index = self.history.get(self.pdf_path, (0, 0))
+
+    def save_progress(self):
+        self.history[self.pdf_path] = (self.current_page_index, self.word_index)
+        self.books_history.save(self.history)
 
     def stop_reading(self):
         """Pause the reading process."""
+        self.save_progress()
         self.paused = True
         self.stop_button.config(state=tk.DISABLED)
         self.resume_button.config(state=tk.NORMAL)
@@ -199,7 +207,7 @@ class PDFSpeedReaderApp:
             if self.current_page_index == len(self.pages) - 1:
                 delay *= 3  # Display the last word for a longer time
 
-            self.history[self.pdf_path] = (self.current_page_index, self.word_index)
+            self.save_progress()
             time.sleep(delay)
 
         if self.word_index == len(self.words):
@@ -222,28 +230,24 @@ class Librarian:
     def _get_hash_for_book(self, book):
         return hashlib.md5(book.encode()).hexdigest()
 
-    def get_reading_history(self):
-        pass
-
-    def save_reading_history(self):
-        pass
-
-
-
-    def save_book(self, book_name, pages):
-        with open(f"{book_name}.rsvp", "w", encoding="utf-8") as f:
-            f.writelines(pages)
-
-    def load_book(self, book_name):
-        pass
+    def load_rsvp_book(self, book_name):
+        with open(f"./books/{book_name}", "r", encoding="utf-8") as f:
+            return eval(f.readlines())
 
     def _load_book(self, pdf_path):
-        """Load a PDF file using the file dialog."""
+        self.open_archive()
+        book = self.books_archive.get(pdf_path)
+        if book:
+            doc = self.load_rsvp_book(book)
+            return doc["content"]
         doc = fitz.open(pdf_path)
         pages = self._get_clear_pages(doc)
+        self.save_rsvp_book(pdf_path, pages)
         return pages
 
     def _get_clear_words(self, text):
+        while ".." in text:
+            text = text.replace("..", ".")
         symbols = ".,!?:;"
         clean_words = []
         clean_word = ""
@@ -259,7 +263,6 @@ class Librarian:
 
         return clean_words
 
-
     def _get_clear_pages(self, doc):
         """Extract text from a PDF file using PyMuPDF."""
         pages = []
@@ -271,32 +274,48 @@ class Librarian:
                 pages.append(new_words)
         return pages
 
-    def open_book(self):
-        pass
+    def open_archive(self):
+        with open("library.json", "r", encoding="utf-8") as f:
+            self.books_archive = json.load(f)
+
+    def update_archive(self):
+        with open("library.json", "w", encoding="utf-8") as f:
+            json.dump(self.books_archive, f, indent=4)
 
     def get_book(self, path):
         return self._load_book(path)
 
+    def save_rsvp_book(self, path, pages):
+        book_name = f"{self._get_hash_for_book(path)}.rsvp"
+        book = {
+            "info": {
+                "name": book_name,
+                "pages": len(pages)
+            },
+            "content": pages
+        }
+        with open(f"./books/{book_name}", "w", encoding="utf-8") as f:
+            f.writelines(book)
+        self.books_archive[path] = book_name
+        self.update_archive()
 
-    def save(self):
-        pass
 
 class BooksHistory:
 
     def _load_history(self):
-        with open("history.json", "r") as f:
+        with open("history.json", "r", encoding="utf-8") as f:
             new_data = json.load(f)
-        self.history.update(new_data)
+        return new_data
 
     def _save_history(self, history):
         with open("history.json", "w", encoding="utf-8") as f:
             json.dump(history, f, indent=4)
+
     def save(self, dict):
-        pass
+        self._save_history(dict)
 
     def load(self):
-        return dict
-
+        return self._load_history()
 
 
 if __name__ == "__main__":
