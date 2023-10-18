@@ -211,6 +211,7 @@ class PDFSpeedReaderApp:
         self.words = self.get_words()
         while self.word_index < len(self.words) and not self.paused:
             word = self.words[self.word_index]
+            word = word.rjust(20)
             self.text_label.config(text=word)
 
             self.word_index += 1
