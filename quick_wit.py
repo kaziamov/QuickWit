@@ -27,7 +27,8 @@ class PDFSpeedReaderApp:
         self.libratanian = Librarian()
         self.books_history = BooksHistory()
 
-        self.speed = 1100  # Default speed: Words per minute
+        self.load_settings()
+        self.speed = self.settings["speed"] or 1100  # Default speed: Words per minute
         self.paused = False
 
         # Style for themed widgets
@@ -43,9 +44,8 @@ class PDFSpeedReaderApp:
         self.load_pdf_button = ttk.Button(root, text="Load PDF", command=self.load_pdf)
         self.load_pdf_button.pack(pady=10)
 
-        self.book_name = ttk.Entry(root, text="Book Name:")
-        self.book_name.pack(pady=10)
-        self.book_name.insert(0, "Book Name")
+        self.load_last = ttk.Button(root, text="Load last book", command=self.load_last_book)
+        self.load_last.pack(pady=10)
 
         # Start button to begin reading
         self.start_button = ttk.Button(root, text="Start reading", command=self.start_reading)
@@ -83,8 +83,28 @@ class PDFSpeedReaderApp:
         self.speed_scale.set(self.speed)
         self.speed_scale.pack()
 
+    def load_settings(self):
+        """Load the settings from the settings.json file."""
+        with open("settings.json", "r") as f:
+            self.settings = json.load(f)
+
+    def save_settings(self):
+        with open("settings.json", "w") as f:
+            settings = {
+                "speed": self.speed,
+                "last_book": self.pdf_path or ""
+            }
+            json.dump(settings, f, indent=4)
+
     def load_pdf(self):
         self.pdf_path = filedialog.askopenfilename(filetypes=[("PDF Files", "*.pdf")])
+        if self.pdf_path:
+            self.pages = self.libratanian.get_book(self.pdf_path)
+        self.history.update(self.books_history.load())
+        self.current_page_index, self.word_index = self.history.get(self.pdf_path, (0, 0))
+
+    def load_last_book(self):
+        self.pdf_path = self.settings["last_book"]
         if self.pdf_path:
             self.pages = self.libratanian.get_book(self.pdf_path)
         self.history.update(self.books_history.load())
@@ -93,6 +113,7 @@ class PDFSpeedReaderApp:
     def save_progress(self):
         self.history[self.pdf_path] = (self.current_page_index, self.word_index)
         self.books_history.save(self.history)
+        self.save_settings()
 
     def stop_reading(self):
         """Pause the reading process."""
@@ -174,6 +195,8 @@ class PDFSpeedReaderApp:
             messagebox.showerror("Error", "Please load a PDF first.")
             return
 
+        self.save_settings()
+
         self.start_button.config(state=tk.DISABLED)
         self.load_pdf_button.config(state=tk.DISABLED)
         self.speed_scale.config(state=tk.DISABLED)
@@ -232,7 +255,7 @@ class Librarian:
 
     def load_rsvp_book(self, book_name):
         with open(f"./books/{book_name}", "r", encoding="utf-8") as f:
-            return eval(f.readlines())
+            return eval(f.readlines()[0])
 
     def _load_book(self, pdf_path):
         self.open_archive()
@@ -295,7 +318,7 @@ class Librarian:
             "content": pages
         }
         with open(f"./books/{book_name}", "w", encoding="utf-8") as f:
-            f.writelines(book)
+            f.writelines(str(book))
         self.books_archive[path] = book_name
         self.update_archive()
 
