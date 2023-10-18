@@ -240,25 +240,29 @@ class PDFSpeedReaderApp:
         delay = 60.0 / (self.speed + 1e-6)
 
 
-        while self.current_page_index < len(self.pages):
-            self.words = self.get_words()
+        self.words = self.get_words()
 
-            for index, word in enumerate(self.words):
-                self.word_index = index
-                self.text_label.config(text=word)
+        while self.word_index < len(self.words) and not self.paused:
+            word = self.words[self.word_index]
+            self.text_label.config(text=word)
 
-                # Update the GUI
-                self.root.update()
+            self.word_index += 1
 
-                self.is_continue_reading()
+            # Ensure non-zero speed
+            delay = 60.0 / (self.speed + 1e-6)
 
-            self.current_page_index += 1
-            # if self.current_page_index == len(self.words) - 1:
-            #     delay *= 3  # Display the last word for a longer time
-            #     time.sleep(delay)
+            # Update the GUI
+            self.root.update()
 
+            if self.word_index == len(self.words) - 1:
+                self.current_page_index += 1
 
-        if self.current_page_index == len(self.pages):
+            if self.current_page_index == len(self.pages) - 1:
+                delay *= 3  # Display the last word for a longer time
+
+            time.sleep(delay)
+
+        if self.word_index == len(self.words):
             self.text_label.config(text="Reading Complete")
 
         self.start_button.config(state=tk.NORMAL)
