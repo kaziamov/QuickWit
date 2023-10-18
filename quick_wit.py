@@ -17,7 +17,7 @@ class PDFSpeedReaderApp:
         self.pdf_path = ""
         self.words = []
         self.word_index = 0
-        self.speed = 300  # Default speed: Words per minute
+        self.speed = 1100  # Default speed: Words per minute
         self.paused = False
 
         # Style for themed widgets
@@ -64,8 +64,8 @@ class PDFSpeedReaderApp:
         # Label to display the current WPM value
         self.wpm_label = ttk.Label(root, text=f"{self.speed} WPM")
         self.wpm_label.pack()
-        
-        self.speed_scale = ttk.Scale(root, from_=100, to=600, orient=tk.HORIZONTAL, length=300, command=self.update_speed)
+
+        self.speed_scale = ttk.Scale(root, from_=100, to=3000, orient=tk.HORIZONTAL, length=300, command=self.update_speed)
         self.speed_scale.set(self.speed)
         self.speed_scale.pack()
 
