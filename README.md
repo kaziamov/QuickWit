@@ -3,7 +3,6 @@
 </h1>
 <div align="center">
   <p>A Speed Reading Application.</p>
-<img src="https://github.com/easyvansh/QuickWit/blob/main/assets/quick_wit_icon.png" alt="Quick Wit Logo" style="width:200px; height:200px"/>
 </div>
 
 
