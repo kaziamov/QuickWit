@@ -139,10 +139,10 @@ class PDFSpeedReaderApp:
         doc = fitz.open(self.pdf_path)
         pages = []
         for page in doc:
-            text = ""
-            text += page.get_text()
-            new_words = self.get_clear_words(text)
-            pages.append(new_words)
+            page_text = page.get_text()
+            new_words = self.get_clear_words(page_text)
+            if new_words:
+                pages.append(new_words)
         return pages
 
     def stop_reading(self):
@@ -240,8 +240,8 @@ class PDFSpeedReaderApp:
         delay = 60.0 / (self.speed + 1e-6)
 
 
-        self.words = self.get_words()
 
+        self.words = self.get_words()
         while self.word_index < len(self.words) and not self.paused:
             word = self.words[self.word_index]
             self.text_label.config(text=word)
@@ -255,7 +255,10 @@ class PDFSpeedReaderApp:
             self.root.update()
 
             if self.word_index == len(self.words) - 1:
+                self.word_index = 0
                 self.current_page_index += 1
+                self.words = self.get_words()
+                continue
 
             if self.current_page_index == len(self.pages) - 1:
                 delay *= 3  # Display the last word for a longer time
