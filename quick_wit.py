@@ -18,7 +18,7 @@ class PDFSpeedReaderApp:
         self.history = {}
         self.load_history()
 
-        self.current_page = 0
+        self.current_page_index = 0
         self.current_book = ""
         self.pdf_path = ""
         self.words = []
@@ -100,7 +100,7 @@ class PDFSpeedReaderApp:
 
 
     def save_history(self):
-        self.history[self.pdf_path] = (self.current_page, self.word_index)
+        self.history[self.pdf_path] = (self.current_page_index, self.word_index)
         with open("history.json", "w") as f:
             json.dump(self.history, f, indent=4)
 
@@ -217,6 +217,13 @@ class PDFSpeedReaderApp:
         self.root.update()
 
 
+    def get_words(self):
+        return self.pages[self.current_page_index]
+
+    def is_continue_reading(self):
+        return self.current_page_index < len(self.pages) and not self.paused
+
+
     def start_reading(self):
         """Start the reading process."""
         if not self.pdf_path:
@@ -232,27 +239,26 @@ class PDFSpeedReaderApp:
         # Ensure non-zero speed
         delay = 60.0 / (self.speed + 1e-6)
 
-        while self.current_page < len(self.pages):
-            self.word_index = 0
-            self.words = self.pages[self.current_page]
 
-            while self.word_index < len(self.words) and not self.paused:
-                word = self.words[self.word_index]
+        while self.current_page_index < len(self.pages):
+            self.words = self.get_words()
+
+            for index, word in enumerate(self.words):
+                self.word_index = index
                 self.text_label.config(text=word)
-
-                self.word_index += 1
 
                 # Update the GUI
                 self.root.update()
 
-            if self.current_page == len(self.words) - 1:
-                delay *= 3  # Display the last word for a longer time
-                time.sleep(delay)
+                self.is_continue_reading()
 
-            self.current_page += 1
+            self.current_page_index += 1
+            # if self.current_page_index == len(self.words) - 1:
+            #     delay *= 3  # Display the last word for a longer time
+            #     time.sleep(delay)
 
 
-        if self.current_page == len(self.pages):
+        if self.current_page_index == len(self.pages):
             self.text_label.config(text="Reading Complete")
 
         self.start_button.config(state=tk.NORMAL)
